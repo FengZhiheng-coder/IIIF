@@ -1,13 +1,10 @@
 #时间2021年5月28日，Author @fzh
 #鱼眼摄像头校正
-
 import cv2
 import numpy as np
 import glob
 import os
 import os.path as osp
-import matplotlib.pyplot as plt
-
 
 def get_K_and_D(checkerboard, imgsPath):
     CHECKERBOARD = checkerboard
