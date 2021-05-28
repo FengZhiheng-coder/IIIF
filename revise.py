@@ -1,15 +1,14 @@
-#新建文件，时间2021年3月15日，Author @fzh 来源CSDN
+#时间2021年5月28日，Author @fzh
 #鱼眼摄像头校正
 
 import cv2
-assert cv2.__version__[0] == '3'
 import numpy as np
-import glob       #查找路径
+import glob
+import os
+import os.path as osp
+import matplotlib.pyplot as plt
 
 
-# 计算内参和矫正系数
-# checkerboard： 棋盘格的格点数目
-# imgsPath: 存放鱼眼图片的路径
 def get_K_and_D(checkerboard, imgsPath):
     CHECKERBOARD = checkerboard
     subpix_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.1)
@@ -39,24 +38,22 @@ def get_K_and_D(checkerboard, imgsPath):
     D = np.zeros((4, 1))
     rvecs = [np.zeros((1, 1, 3), dtype=np.float64) for i in range(N_OK)]
     tvecs = [np.zeros((1, 1, 3), dtype=np.float64) for i in range(N_OK)]
-    rms, _, _, _, _ = \
-        cv2.fisheye.calibrate(
-            objpoints,
-            imgpoints,
-            gray.shape[::-1],
-            K,
-            D,
-            rvecs,
-            tvecs,
-            calibration_flags,
-            (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 1e-6)
-        )
+    rms, _, _, _, _ = cv2.fisheye.calibrate(
+        objpoints,
+        imgpoints,
+        gray.shape[::-1],
+        K,
+        D,
+        rvecs,
+        tvecs,
+        calibration_flags,
+        (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 1e-6)
+    )
     DIM = _img_shape[::-1]
     print("Found " + str(N_OK) + " valid images for calibration")
     print("DIM=" + str(_img_shape[::-1]))
     print("K=np.array(" + str(K.tolist()) + ")")
     print("D=np.array(" + str(D.tolist()) + ")")
-
     return DIM, K, D
 
 
@@ -77,16 +74,34 @@ def undistort(img_path, K, D, DIM, scale=0.6, imshow=False):
     return undistorted_img
 
 
+
 if __name__ == '__main__':
     # 开始使用图片来获取内参和畸变系数
-    DIM, K, D = get_K_and_D((6, 9), '')
+    base_path=os.path.dirname(os.path.abspath(__file__))
+    view_path=os.path.join(base_path,'views')
+    #DIM, K, D = get_K_and_D((6, 9), view_path)
+    DIM_C = (640, 480)
+    K_C = np.array([[264.8718530264331, 0.0, 299.52281262869144],
+                    [0.0, 264.8614748244235, 241.52849384953572],
+                    [0.0, 0.0, 1.0]])
+    D_C = np.array([[-0.018465666357146516],
+                    [0.00023640864891298283],
+                    [0.0004638369263624063],
+                    [-0.0010282773327839974]])
     # 得到内参和畸变系数畸变矫正进行测试
-    '''
-    DIM=(2560, 1920)
-    K=np.array([[652.8609862494474, 0.0, 1262.1021584894233], [0.0, 653.1909758659955, 928.0871455436396], [0.0, 0.0, 1.0]])
-    D=np.array([[-0.024092199861108887], [0.002745976275100771], [0.002545415522352827], [-0.0014366825722748522]])
-    img = undistort('../imgs/pig.jpg',K,D,DIM)
-    cv2.imwrite('../imgs/pig_checkerboard.jpg', img)
-    '''
+
+    revise_path=osp.join(base_path,'revise_view')
+    if not osp.exists(revise_path):
+        os.mkdir(revise_path)
+
+    dir=os.listdir(view_path)
+    print(dir)
+    for p in dir:
+        test_view=osp.join(view_path,p)
+        save_view=osp.join(revise_path,p)
+        img = undistort(test_view,K_C,D_C,DIM_C)
+        cv2.imwrite(save_view,img)
+        print('{} has been revised and saved in {}'.format(p,save_view))
+
 
 
